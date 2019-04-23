@@ -1,5 +1,6 @@
 const MonoplasmaWatcher = require("./watcher")
 
+let publishMutex = false
 module.exports = class MonoplasmaOperator extends MonoplasmaWatcher {
 
     constructor(...args) {
@@ -25,6 +26,8 @@ module.exports = class MonoplasmaOperator extends MonoplasmaWatcher {
     }
 
     async publishBlock(blockNumber) {
+        if (publishMutex) { return }
+        publishMutex = true
         const bnum = blockNumber || this.state.lastBlockNumber
         if (blockNumber <= this.state.lastPublishedBlock) {
             throw new Error(`Block #${this.state.lastPublishedBlock} has already been published, can't publish #${blockNumber}`)
@@ -38,6 +41,7 @@ module.exports = class MonoplasmaOperator extends MonoplasmaWatcher {
             gasPrice: this.state.gasPrice
         })
         this.state.lastPublishedBlock = bnum
-        return this.plasma.storeBlock(bnum)     // TODO: move this to Watcher
+        await this.plasma.storeBlock(bnum)     // TODO: move this to Watcher
+        publishMutex = false
     }
 }
